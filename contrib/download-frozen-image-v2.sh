@@ -18,6 +18,7 @@ fi
 usage() {
 	echo "usage: $0 dir image[:tag][@digest] ..."
 	echo "       $0 /tmp/old-hello-world hello-world:latest@sha256:8be990ef2aeb16dbcb9271ddfe2610fa6658d13f6dfb8bc72074cc1ca36966a7"
+	echo "Define ARCH variable to override architecture for multi-arch images"
 	[ -z "$1" ] || exit "$1"
 }
 
@@ -26,6 +27,9 @@ shift || usage 1 >&2
 
 [ $# -gt 0 -a "$dir" ] || usage 2 >&2
 mkdir -p "$dir"
+
+# select architecture
+targetArch=${ARCH:-$(go env GOARCH)}
 
 # hacky workarounds for Bash 3 support (no associative arrays)
 images=()
@@ -235,7 +239,7 @@ while [ $# -gt 0 ]; do
 					for i in "${!layers[@]}"; do
 						layerMeta="${layers[$i]}"
 						maniArch="$(echo "$layerMeta" | jq --raw-output '.platform.architecture')"
-						if [ "$maniArch" = "$(go env GOARCH)" ]; then
+						if [ "$maniArch" = "$targetArch" ]; then
 							digest="$(echo "$layerMeta" | jq --raw-output '.digest')"
 							# get second level single manifest
 							submanifestJson="$(
